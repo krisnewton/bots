@@ -1,0 +1,23 @@
+{
+    "name": "harishariyanto/bots",
+    "description": "Create Bots",
+    "authors": [
+        {
+            "name": "Haris Hariyanto",
+            "email": "harishariyanto299@gmail.com"
+        }
+    ],
+    "require": {},
+    "extra": {
+    	"laravel": {
+    		"providers": [
+    			"Harishariyanto\\Bots\\BotsServiceProvider"
+    		]
+    	}
+    },
+    "autoload": {
+    	"psr-4": {
+    		"Harishariyanto\\Bots\\": "src"
+    	}
+    }
+}

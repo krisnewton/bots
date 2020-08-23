@@ -1,0 +1,179 @@
+<?php
+
+namespace App\Http\Controllers\Apps;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Botchat;
+
+class Bot{{stud_name}}Controller extends Controller
+{
+    public $key = '{{bot_token}}';
+    public $password = '{{bot_password}}';
+    public $bot_name = '{{snake_name}}';
+
+    public function tg_request($method_name = '', $data = [])
+    {
+    	$output = 'https://api.telegram.org/bot' . $this->key . '/' . $method_name . '?' . http_build_query($data);
+    	return $output;
+    }
+
+    public function tg_setWebhook($url = '')
+    {
+    	$data = [
+    		'url' => $url
+    	];
+    	$output = $this->tg_request('setWebhook', $data);
+    	return $output;
+    }
+
+    public function tg_sendMessage($chat_id = '', $text = '')
+    {
+    	$data = [
+    		'chat_id' => $chat_id,
+    		'text' => $text,
+    		'parse_mode' => 'HTML'
+    	];
+    	$output = $this->tg_request('sendMessage', $data);
+    	return file_get_contents($output);
+    }
+
+    public function tg_sendPhoto($chat_id = '', $photo = '', $caption = '')
+    {
+    	$data = [
+    		'chat_id' => $chat_id,
+    		'photo' => $photo,
+    		'caption' => $caption
+    	];
+    	$output = $this->tg_request('sendPhoto', $data);
+    	return file_get_contents($output);
+    }
+
+    public function index()
+    {
+    	return $this->tg_setWebhook(route('bot.receiver.{{snake_name}}'));
+    }
+
+    public function receiver()
+    {
+    	$input = file_get_contents('php://input');
+    	$input = json_decode($input, true);
+
+    	$message 	= $input['message'];
+    	$chat 		= $message['chat'];
+    	$text 		= $message['text'];
+
+    	// Chat harus private
+    	if ($chat['type'] == 'private') {
+
+            // Cari botchat dalam database
+            // Atau buat baru jika belum ada
+    		$data = [
+    			'chat_id' => $chat['id'],
+                'bot_name' => $this->bot_name
+    		];
+            $botchat = Botchat::firstOrCreate($data, ['status' => 'standby', 'extra' =>  '']);
+
+            // Botchat harus terautentikasi
+            if ($botchat->auth == 'Y') {
+
+                // Batalkan seluruh perintah atau jalankan perintah
+                if ($text == '/cancel') {
+                    $botchat->update(['status' => 'standby', 'extra' => '']);
+                    $this->tg_sendMessage($chat['id'], 'Berhasil dibatalkan');
+                }
+                else {
+                    $this->processor($input, $botchat);
+                }
+                // [END] Batalkan seluruh perintah atau jalankan perintah
+
+            }
+            else {
+
+                // Autentikasi Botchat
+                if ($botchat->status == 'authenticating') {
+
+                    // Cek password
+                    if ($text == $this->password) {
+                        // Password benar
+                        $this->tg_sendMessage($chat['id'], 'Password benar 👍');
+                        $this->tg_sendMessage($chat['id'], 'Bot sudah bisa digunakan');
+
+                        $data = [
+                            'auth' => 'Y',
+                            'status' => 'standby'
+                        ];
+                        $botchat->update($data);
+                    }
+                    else {
+                        // Password salah
+                        $this->tg_sendMessage($chat['id'], 'Password salah, silakan coba masukkan password lagi');
+                    }
+                    // [END] Cek password
+
+                }
+                else {
+
+                    if ($text == '/start') {
+                        $this->tg_sendMessage($chat['id'], 'Untuk menggunakan bot ini silakan masukkan password terlebih dahulu');
+                    }
+                    else {
+                        $this->tg_sendMessage($chat['id'], 'Masukkan password untuk mulai menggunakan bot');
+                    }
+
+                    $botchat->update(['status' => 'authenticating']);
+
+                }
+                // [END] Autentikasi Botchat
+
+            }
+            // [END] Botchat harus terautentikasi
+
+    	}
+    	// [END] Chat harus private
+    }
+
+    public function set_extra($extra, $title, $value)
+    {
+        $extra = json_decode($extra, true);
+        $extra[$title] = $value;
+
+        return json_encode($extra);
+    }
+
+    public function get_extra($extra, $title)
+    {
+        $extra = json_decode($extra, true);
+
+        if (isset($extra[$title])) {
+            return $extra[$title];
+        }
+        else {
+            return false;
+        }
+    }
+
+    public function processor($input, $botchat)
+    {
+        $message    = $input['message'];
+        $chat       = $message['chat'];
+        $text       = $message['text'];
+
+        // Eksekusi perintah
+        if ($botchat->status == 'standby') {
+
+            if ($text == 'test') {
+                $this->tg_sendMessage($chat['id'], 'Hello, World!');
+            }
+            else {
+                $this->tg_sendMessage($chat['id'], 'Input yang kamu masukkan tidak tersedia');
+            }
+
+        }
+        else {
+            $botchat->update(['status' => 'standby', 'extra' => '']);
+        }
+        // [END] Eksekusi perintah
+
+    }
+}
