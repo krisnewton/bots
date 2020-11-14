@@ -12,7 +12,7 @@ class BotGenerator extends Command
      *
      * @var string
      */
-    protected $signature = 'make:bot {name : Nama Bot} {password : Password Bot} {token : Bot Token}';
+    protected $signature = 'make:bot';
 
     /**
      * The console command description.
@@ -38,9 +38,9 @@ class BotGenerator extends Command
      */
     public function handle()
     {
-        $name = $this->argument('name');
-        $password = $this->argument('password');
-        $token = $this->argument('token');
+        $name = $this->ask('Nama BOT');
+        $password = $this->ask('Password BOT');
+        $token = $this->ask('Token BOT');
 
         $stud_name = Str::studly($name);
         $snake_name = Str::snake($name);
