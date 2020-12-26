@@ -65,5 +65,7 @@ class BotGenerator extends Command
         $new_routes = $api_routes . "\r\n" . $new_route;
 
         file_put_contents(base_path('routes/api.php'), $new_routes);
+
+        $this->info('BOT berhasil dibuat');
     }
 }
